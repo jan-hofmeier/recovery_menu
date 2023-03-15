@@ -6,12 +6,30 @@
 #define LOCAL_PROCESS_HEAP_ID 0xcafe
 #define CROSS_PROCESS_HEAP_ID 0xcaff
 
-#define FS_MMC_MLC_STRUCT                   ((vu32*)0x1089B948)
+#define FS_MMC_MLC_STRUCT                   ((vuint32_t*)0x1089B948)
 #define FS_MLC_PHYS_DEV_STRUCT              ((void*)0x11C3A14C)
 #define FS_SLC_PHYS_DEV_STRUCT              ((void*)0x11C381CC)
 #define FS_SLCCMPT_PHYS_DEV_STRUCT          ((void*)0x11C37668)
 
-typedef volatile uint32_t vu32;
+#define FS_SVC_CREATEMUTEX                  ((int (*)(int, int))0x107F6BBC)
+#define FS_SVC_ACQUIREMUTEX                 ((int (*)(int, int))0x107F6BC4)
+#define FS_SVC_RELEASEMUTEX                 ((int (*)(int))0x107F6BCC)
+#define FS_SVC_DESTROYMUTEX                 ((int (*)(int))0x107F6BD4)
+
+#define FS_SLEEP                            ((void (*)(int))0x1071D668)
+#define FS_MEMCMP                           ((int (*)(const void*, const void*, uint32_t))0x107F4E94)
+#define FS_MEMCPY                           ((void* (*)(void*, const void*, uint32_t))0x107F4F7C)
+#define FS_MEMSET                           ((void* (*)(void*, int, uint32_t))0x107F5018)
+#define FS_VSNPRINTF                        ((int (*)(char * s, size_t n, const char * format, va_list arg))0x107F5F68)
+#define FS_SNPRINTF                         ((int (*)(char * s, size_t n, const char * format, ...))0x107F5FB4)
+#define FS_STRNCPY                          ((void* (*)(char*, const char*, uint32_t))0x107F60DC)
+#define FS_STRNCMP                          ((int (*)(const char*, const char*, uint32_t))0x107F6138)
+#define FS_SAFE_STRLEN                      ((int (*)(const char*, uint32_t))0x107F61BC)
+
+#define FS_RAW_READ1                        ((int (*)(int handle, uint32_t offset_high, uint32_t offset_low, uint32_t size, void* buf, void *callback, int callback_arg))0x10732BC0)
+#define FS_SDIO_DOREADWRITECOMMAND          ((int (*)(int, void*, uint32_t, void*, void*))0x10718A8C)
+
+typedef volatile uint32_t vuint32_t;
 
 typedef struct {
     void* ptr;

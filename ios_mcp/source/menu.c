@@ -28,10 +28,12 @@
 #include "sci.h"
 #include "mcp_misc.h"
 #include "mdinfo.h"
+#include "dumper.h"
 
 #include <string.h>
 #include <unistd.h>
 
+static void option_dumpNand(void);
 static void option_SetColdbootTitle(void);
 static void option_DumpSyslogs(void);
 static void option_DumpOtpAndSeeprom(void);
@@ -59,6 +61,7 @@ typedef struct Menu {
 } Menu;
 
 static const Menu mainMenuOptions[] = {
+    {"Dump SLC + MLC",              {.callback = option_dumpNand}},
     {"Set Coldboot Title",          {.callback = option_SetColdbootTitle}},
     {"Dump Syslogs",                {.callback = option_DumpSyslogs}},
     {"Dump OTP + SEEPROM",          {.callback = option_DumpOtpAndSeeprom}},
@@ -216,6 +219,10 @@ static void waitButtonInput(void)
             cur_flag = flag;
         }
     }
+}
+
+static void option_dumpNand(void){
+    dump_nand_complete(fsaHandle);
 }
 
 static void option_SetColdbootTitle(void)

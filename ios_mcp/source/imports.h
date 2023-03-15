@@ -6,6 +6,13 @@
 #define LOCAL_PROCESS_HEAP_ID 0xcafe
 #define CROSS_PROCESS_HEAP_ID 0xcaff
 
+#define FS_MMC_MLC_STRUCT                   ((vu32*)0x1089B948)
+#define FS_MLC_PHYS_DEV_STRUCT              ((void*)0x11C3A14C)
+#define FS_SLC_PHYS_DEV_STRUCT              ((void*)0x11C381CC)
+#define FS_SLCCMPT_PHYS_DEV_STRUCT          ((void*)0x11C37668)
+
+typedef volatile uint32_t vu32;
+
 typedef struct {
     void* ptr;
     uint32_t len;

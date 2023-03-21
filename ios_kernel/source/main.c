@@ -87,16 +87,16 @@ int _main(void* arg)
 
     // give the current thread full access to MCP for starting the thread
     setClientCapabilities(currentThreadContext->pid, 0xd, 0xffffffffffffffffllu);
-    
+
     // give IOS-MCP full access to FS
     setClientCapabilities(1, 0xb, 0xffffffffffffffffllu);
+
 
     // start mcp thread
     int mcpHandle = IOS_Open("/dev/mcp", 0);
     if (mcpHandle > 0) {
         lolserial_printf("Starting MCP thread...\n");
         IOS_Ioctl(mcpHandle, 100, NULL, 0, NULL, 0);
-
         IOS_Close(mcpHandle);
     } else {
         lolserial_printf("Cannot open MCP: %x\n", mcpHandle);

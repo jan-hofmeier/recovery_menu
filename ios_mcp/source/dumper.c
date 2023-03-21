@@ -10,12 +10,6 @@
 //mlc_end in bytes
 int mlc_dump(int fsaHandle, int y_offset){
     int result = -1;
-    int retry = 0;
-    int mlc_result = 0;
-    int write_result = 0;
-    int print_counter = 0;
-    int current_file_index = 0;
-
 
     MDReadInfo();
     MDBlkDrv *blkDrv = MDGetBlkDrv(0);
@@ -44,7 +38,10 @@ int mlc_dump(int fsaHandle, int y_offset){
 
     char filename[40];
     int file = 0;
-
+    int retry = 0;
+    int print_counter = 0;
+    int current_file_index = 0;
+    int mlc_result;
     uint64_t offset = 0;
     do
     {
@@ -81,7 +78,7 @@ int mlc_dump(int fsaHandle, int y_offset){
         }
         else
         {
-            write_result = FSA_WriteFile(fsaHandle, io_buffer, 1, buffer_size, file, 0);
+            int write_result = FSA_WriteFile(fsaHandle, io_buffer, 1, buffer_size, file, 0);
             if (write_result != buffer_size) {
                 gfx_printf(20, y_offset + 10, 0, "mlc: Failed to write %d bytes to file %s (result: %d)!", buffer_size, filename, write_result);
                 goto error;
@@ -109,7 +106,6 @@ error:
 
     return result;
 }
-
 
 void dump_nand_complete(int fsaHandle){
   mlc_dump(fsaHandle, 30);

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#define SLC_SIZE 0x20000000
 
 //mlc_end in bytes
 int mlc_dump(int fsaHandle, int y_offset){
@@ -65,7 +66,7 @@ int mlc_dump(int fsaHandle, int y_offset){
         }
 
         //! set flash erased byte to buffer
-        memset(io_buffer, 0, buffer_size);
+        memset(io_buffer, 0xbaad, buffer_size);
         mlc_result = FSA_RawRead(fsaHandle, io_buffer, 0x10, buffer_size / 0x10, offset / 0x10, fsa_raw_handle);
 
         //! retry 5 times as there are read failures in several places
@@ -107,6 +108,91 @@ error:
     return result;
 }
 
+int slc_dump(int fsaHandle, int y_offset){
+    int result = -1;
+    uint64_t slc_size = SLC_SIZE;
+    size_t buffer_size = 0x1000;
+
+    void* io_buffer = IOS_HeapAllocAligned(CROSS_PROCESS_HEAP_ID, buffer_size, 0x40);
+    if (!io_buffer) {
+        gfx_set_font_color(COLOR_ERROR);
+        gfx_print(16, y_offset, 0, "Out of memory!");
+        return -1;
+    }
+
+    int fsa_raw_handle = 0xFFFFFFFF;
+    int fsa_raw_open_result = 0xFFFFFFFF;
+
+    while (fsa_raw_open_result < 0)
+    {
+      // Open target device
+      fsa_raw_open_result = FSA_RawOpen(fsaHandle, "/dev/slc01", &fsa_raw_handle);
+      usleep(1000);
+    }
+
+    int file = 0;
+    int res = FSA_OpenFile(fsaHandle, "/vol/storage_recovsd/slc.bin", "w", &file);
+    if (res < 0) {
+        gfx_set_font_color(COLOR_ERROR);
+        gfx_printf(26, y_offset, 0, "Failed to create slc.bin: %x", res);
+        goto error;
+    }
+
+    int retry = 0;
+    int print_counter = 0;
+    int slc_result;
+    uint64_t offset = 0;
+    do
+    {
+        //! print only every 4th time
+        if(print_counter == 0)
+        {
+            print_counter = 40;
+            gfx_printf(20, y_offset, GfxPrintFlag_ClearBG, "slc         = %011llu / %011llu, mlc res %08X, retry %d", offset, slc_size, slc_result, retry);
+        }
+        else
+        {
+            --print_counter;
+        }
+
+        //! set flash erased byte to buffer
+        memset(io_buffer, 0xbaad, buffer_size);
+        slc_result = FSA_RawRead(fsaHandle, io_buffer, 1, buffer_size, offset, fsa_raw_handle);
+
+        //! retry 5 times as there are read failures in several places
+        if(slc_result && (retry < 5))
+        {
+            gfx_printf(20, y_offset + 20, 0, "slc_result: %d", slc_result);
+            usleep(100);
+            retry++;
+            print_counter = 0; // print errors directly
+        }
+        else
+        {
+            int write_result = FSA_WriteFile(fsaHandle, io_buffer, 1, buffer_size, file, 0);
+            if (write_result != buffer_size) {
+                gfx_printf(20, y_offset + 10, 0, "slc: Failed to write %d bytes to file slc.bin (result: %d)!", buffer_size, write_result);
+                goto error;
+            }         
+            offset += buffer_size;
+        }
+    }
+    while(offset < slc_size); //! TODO: make define MLC32_SECTOR_COUNT:
+
+    result = 0;
+
+error:
+    IOS_HeapFree(CROSS_PROCESS_HEAP_ID, io_buffer);
+    if (file) {
+         FSA_CloseFile(fsaHandle, file);
+    }
+    FSA_RawClose(fsaHandle, fsa_raw_handle);
+    // last print to show "done"
+    gfx_printf(20, y_offset, 0, "slc         = %08llu / %08llu, slc res %08X, retry %d", offset, slc_size, slc_result, retry);
+
+    return result;
+}
+
 void dump_nand_complete(int fsaHandle){
-  mlc_dump(fsaHandle, 30);
+  slc_dump(fsaHandle, 50);
 }

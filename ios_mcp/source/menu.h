@@ -18,3 +18,4 @@
 #pragma once
 
 int menuThread(void* arg);
+void waitButtonInput(void);

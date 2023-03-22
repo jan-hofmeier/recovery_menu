@@ -2,6 +2,7 @@
 #include "gfx.h"
 #include "mdinfo.h"
 #include "fsa.h"
+#include "menu.h"
 
 #include <string.h>
 #include <unistd.h>
@@ -18,7 +19,8 @@ int mlc_dump(int fsaHandle, int y_offset){
     uint32_t mlc_block_size = blkDrv->params.blockSize;
     uint64_t mlc_size = mlc_num_blocks * mlc_block_size;
 
-    size_t buffer_size = 0x10 * 0x1000; //mlc_block_size * 128;
+    //size_t buffer_size = 0x10 * 0x1000;
+    size_t buffer_size = mlc_block_size * 128;
 
     void* io_buffer = IOS_HeapAllocAligned(CROSS_PROCESS_HEAP_ID, buffer_size, 0x40);
     if (!io_buffer) {
@@ -43,9 +45,14 @@ int mlc_dump(int fsaHandle, int y_offset){
     int print_counter = 0;
     int current_file_index = 0;
     int mlc_result;
+    uint64_t read_errors = 0;
+    uint64_t bad_blocks = 0;
     uint64_t offset = 0;
     do
     {
+        if (mlc_size - offset < buffer_size){
+            buffer_size = mlc_size - offset;
+        }
         if (!file) {
             snprintf(filename, sizeof(filename), "/vol/storage_recovsd/mlc.bin.part%02d", ++current_file_index);
             int res = FSA_OpenFile(fsaHandle, filename, "w", &file);
@@ -65,31 +72,35 @@ int mlc_dump(int fsaHandle, int y_offset){
             --print_counter;
         }
 
-        //! set flash erased byte to buffer
-        memset(io_buffer, 0xbaad, buffer_size);
-        mlc_result = FSA_RawRead(fsaHandle, io_buffer, 0x10, buffer_size / 0x10, offset / 0x10, fsa_raw_handle);
+        mlc_result = FSA_RawRead(fsaHandle, io_buffer, mlc_block_size, buffer_size / mlc_block_size, offset / mlc_block_size, fsa_raw_handle);
 
         //! retry 5 times as there are read failures in several places
-        if(mlc_result && (retry < 5))
+        if(mlc_result)
         {
+            read_errors++;
             gfx_printf(20, y_offset + 20, 0, "mlc_result: %d", mlc_result);
-            usleep(100);
-            retry++;
+            memset(io_buffer, 0xbaad, buffer_size);
+            //read one sector at a time
+            for(uint64_t s = 0; s < buffer_size; s += mlc_block_size){
+                for(int retry=0; mlc_result && (retry < 5); retry++){
+                    usleep(100);
+                    mlc_result = FSA_RawRead(fsaHandle, io_buffer, mlc_block_size, 1, offset + s, fsa_raw_handle);
+                }
+                if(mlc_result)
+                    bad_blocks++;
+            }
             print_counter = 0; // print errors directly
         }
-        else
-        {
-            int write_result = FSA_WriteFile(fsaHandle, io_buffer, 1, buffer_size, file, 0);
-            if (write_result != buffer_size) {
-                gfx_printf(20, y_offset + 10, GfxPrintFlag_ClearBG, "mlc: Failed to write %d bytes to file %s (result: %d)!", buffer_size, filename, write_result);
-                goto error;
-            }         
-            offset += buffer_size;
-            //split every 2GB because of FAT32
-            if ((offset % 0x80000000) == 0) {
-                FSA_CloseFile(fsaHandle, file);
-                file = 0;
-            }
+        int write_result = FSA_WriteFile(fsaHandle, io_buffer, 1, buffer_size, file, 0);
+        if (write_result != buffer_size) {
+            gfx_printf(20, y_offset + 10, GfxPrintFlag_ClearBG, "mlc: Failed to write %d bytes to file %s (result: %d)!", buffer_size, filename, write_result);
+            goto error;
+        }         
+        offset += buffer_size;
+        //split every 2GB because of FAT32
+        if ((offset % 0x80000000) == 0) {
+            FSA_CloseFile(fsaHandle, file);
+            file = 0;
         }
     }
     while(offset < mlc_size); //! TODO: make define MLC32_SECTOR_COUNT:
@@ -193,7 +204,30 @@ error:
     return result;
 }
 
+static void check_result(int res, int y_offset){
+    if (res) {
+        gfx_set_font_color(COLOR_ERROR);
+        gfx_printf(160, y_offset, 0, "Error %x", res);
+        waitButtonInput();
+        gfx_set_font_color(COLOR_PRIMARY);
+    }
+}
+
+static void ssleep(uint32_t s){
+    usleep(s * 1000 * 1000);
+}
+
 void dump_nand_complete(int fsaHandle){
-  mlc_dump(fsaHandle, 30);
-  slc_dump(fsaHandle, 60);
+    gfx_print(20, 30, GfxPrintFlag_ClearBG, "Waiting for System to settle...");
+    ssleep(20);
+    gfx_printf(20, 30, GfxPrintFlag_ClearBG, "Unmounting MLC...");
+    int res = FSA_Unmount(fsaHandle, "/vol/storage_mlc01", 2);
+    check_result(res, 30);
+    ssleep(10);
+    gfx_printf(20, 45, GfxPrintFlag_ClearBG, "Unmounting SLC...");
+    res = FSA_Unmount(fsaHandle, "/vol/system", 0);
+    check_result(res, 45);
+
+    mlc_dump(fsaHandle, 60);
+    slc_dump(fsaHandle, 90);
 }

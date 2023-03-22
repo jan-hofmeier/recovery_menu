@@ -196,7 +196,7 @@ static int drawMenu(const char* title, const Menu* menu, size_t count,
     }
 }
 
-static void waitButtonInput(void)
+void waitButtonInput(void)
 {
     gfx_set_font_color(COLOR_PRIMARY);
     gfx_draw_rect_filled(8, SCREEN_HEIGHT - (16 + 8 + 2), SCREEN_WIDTH - 8 * 2, 2, COLOR_SECONDARY);

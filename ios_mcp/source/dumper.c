@@ -81,7 +81,7 @@ int mlc_dump(int fsaHandle, int y_offset){
         {
             int write_result = FSA_WriteFile(fsaHandle, io_buffer, 1, buffer_size, file, 0);
             if (write_result != buffer_size) {
-                gfx_printf(20, y_offset + 10, 0, "mlc: Failed to write %d bytes to file %s (result: %d)!", buffer_size, filename, write_result);
+                gfx_printf(20, y_offset + 10, GfxPrintFlag_ClearBG, "mlc: Failed to write %d bytes to file %s (result: %d)!", buffer_size, filename, write_result);
                 goto error;
             }         
             offset += buffer_size;
@@ -103,7 +103,7 @@ error:
     }
     FSA_RawClose(fsaHandle, fsa_raw_handle);
     // last print to show "done"
-    gfx_printf(20, y_offset, 0, "mlc         = %08llu / %08llu, mlc res %08X, retry %d", offset, mlc_size, mlc_result, retry);
+    gfx_printf(20, y_offset, GfxPrintFlag_ClearBG, "mlc         = %08llu / %08llu, mlc res %08X, retry %d", offset, mlc_size, mlc_result, retry);
 
     return result;
 }
@@ -116,7 +116,7 @@ int slc_dump(int fsaHandle, int y_offset){
     void* io_buffer = IOS_HeapAllocAligned(CROSS_PROCESS_HEAP_ID, buffer_size, 0x40);
     if (!io_buffer) {
         gfx_set_font_color(COLOR_ERROR);
-        gfx_print(16, y_offset, 0, "Out of memory!");
+        gfx_print(16, y_offset, GfxPrintFlag_ClearBG, "Out of memory!");
         return -1;
     }
 
@@ -134,7 +134,7 @@ int slc_dump(int fsaHandle, int y_offset){
     int res = FSA_OpenFile(fsaHandle, "/vol/storage_recovsd/slc.bin", "w", &file);
     if (res < 0) {
         gfx_set_font_color(COLOR_ERROR);
-        gfx_printf(26, y_offset, 0, "Failed to create slc.bin: %x", res);
+        gfx_printf(26, y_offset, GfxPrintFlag_ClearBG, "Failed to create slc.bin: %x", res);
         goto error;
     }
 
@@ -162,7 +162,7 @@ int slc_dump(int fsaHandle, int y_offset){
         //! retry 5 times as there are read failures in several places
         if(slc_result && (retry < 5))
         {
-            gfx_printf(20, y_offset + 20, 0, "slc_result: %d", slc_result);
+            gfx_printf(20, y_offset + 20, GfxPrintFlag_ClearBG, "slc_result: %d", slc_result);
             usleep(100);
             retry++;
             print_counter = 0; // print errors directly
@@ -171,7 +171,7 @@ int slc_dump(int fsaHandle, int y_offset){
         {
             int write_result = FSA_WriteFile(fsaHandle, io_buffer, 1, buffer_size, file, 0);
             if (write_result != buffer_size) {
-                gfx_printf(20, y_offset + 10, 0, "slc: Failed to write %d bytes to file slc.bin (result: %d)!", buffer_size, write_result);
+                gfx_printf(20, y_offset + 10, GfxPrintFlag_ClearBG, "slc: Failed to write %d bytes to file slc.bin (result: %d)!", buffer_size, write_result);
                 goto error;
             }         
             offset += buffer_size;
@@ -194,5 +194,6 @@ error:
 }
 
 void dump_nand_complete(int fsaHandle){
-  slc_dump(fsaHandle, 50);
+  mlc_dump(fsaHandle, 30);
+  slc_dump(fsaHandle, 60);
 }

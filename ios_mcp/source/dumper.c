@@ -36,7 +36,17 @@ int mlc_dump(int fsaHandle, int y_offset){
         goto error;
     }
 
-    const uint16_t mid = drv->params.mid_prv >> 16;
+    char strBuff[40];
+    const uint16_t mid = blkDrv->params.mid_prv >> 16;
+    snprintf(strBuff, sizeof(strBuff), "mid: %u\n", mid);
+    FSA_WriteFile(fsaHandle, strBuff, strnlen(strBuff, sizeof(strBuff)), 1, logfile, 0);
+
+    uint32_t cid[4];
+    res = MDGetCID(blkDrv->deviceId, cid);
+    if (res == 0) {
+        snprintf(strBuff, sizeof(strBuff), "CID: %08lx%08lx%08lx%08lx\n", cid[0], cid[1], cid[2], cid[3]);
+        FSA_WriteFile(fsaHandle, strBuff, strnlen(strBuff, sizeof(strBuff)), 1, logfile, 0);
+    }
 
     int fsa_raw_handle = 0xFFFFFFFF;
     int fsa_raw_open_result = 0xFFFFFFFF;
@@ -48,7 +58,6 @@ int mlc_dump(int fsaHandle, int y_offset){
       usleep(1000);
     }
 
-    char strBuff[40];
     int file = 0;
     int print_counter = 0;
     int current_file_index = 0;

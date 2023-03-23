@@ -29,6 +29,15 @@ int mlc_dump(int fsaHandle, int y_offset){
         return -1;
     }
 
+    int logfile = 0;
+    int res = FSA_OpenFile(fsaHandle, "/vol/storage_recovsd/mlc.log", "w", &logfile);
+    if (res < 0) {
+        gfx_printf(20, y_offset, 0, "Failed to open mlc.log for writing");
+        goto error;
+    }
+
+    const uint16_t mid = drv->params.mid_prv >> 16;
+
     int fsa_raw_handle = 0xFFFFFFFF;
     int fsa_raw_open_result = 0xFFFFFFFF;
 
@@ -37,13 +46,6 @@ int mlc_dump(int fsaHandle, int y_offset){
       // Open target device
       fsa_raw_open_result = FSA_RawOpen(fsaHandle, "/dev/mlc01", &fsa_raw_handle);
       usleep(1000);
-    }
-
-    int logfile = 0;
-    int res = FSA_OpenFile(fsaHandle, "/vol/storage_recovsd/mlc.log", "w", &logfile);
-    if (res < 0) {
-        gfx_printf(20, y_offset, 0, "Failed to open mlc.log for writing");
-        goto error;
     }
 
     char strBuff[40];
@@ -56,9 +58,10 @@ int mlc_dump(int fsaHandle, int y_offset){
     uint64_t lba = 0;
     do
     {
-        uint64_t remaining_bytes = (mlc_num_blocks - lba) * mlc_block_size;
-        if ( remaining_bytes < buffer_size){
-            buffer_size = remaining_bytes;
+        uint64_t remaining_lbas = mlc_num_blocks - lba;
+        if ( remaining_lbas < buffer_size_lba){
+            buffer_size_lba = remaining_lbas;
+            buffer_size = buffer_size_lba * mlc_block_size; 
         }
         if (!file) {
             snprintf(strBuff, sizeof(strBuff), "/vol/storage_recovsd/mlc.bin.part%02d", ++current_file_index);

@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #define SLC_SIZE 0x20000000
+#define STR_BUFF_SZ 0x120
 
 //mlc_end in bytes
 int mlc_dump(int fsaHandle, int y_offset){
@@ -22,11 +23,19 @@ int mlc_dump(int fsaHandle, int y_offset){
     size_t buffer_size_lba = 128;
     size_t buffer_size = mlc_block_size * buffer_size_lba;
 
+    
     void* io_buffer = IOS_HeapAllocAligned(CROSS_PROCESS_HEAP_ID, buffer_size, 0x40);
     if (!io_buffer) {
         gfx_set_font_color(COLOR_ERROR);
         gfx_print(16, y_offset, 0, "Out of memory!");
         return -1;
+    }
+    
+    char* str_buffer = IOS_HeapAllocAligned(CROSS_PROCESS_HEAP_ID, STR_BUFF_SZ, 0x40);
+    if (!str_buffer) {
+        gfx_set_font_color(COLOR_ERROR);
+        gfx_print(16, y_offset, 0, "Out of memory!");
+        goto error;
     }
 
     int logfile = 0;
@@ -36,16 +45,16 @@ int mlc_dump(int fsaHandle, int y_offset){
         goto error;
     }
 
-    char strBuff[40];
     const uint16_t mid = blkDrv->params.mid_prv >> 16;
-    snprintf(strBuff, sizeof(strBuff), "mid: %u\n", mid);
-    FSA_WriteFile(fsaHandle, strBuff, strnlen(strBuff, sizeof(strBuff)), 1, logfile, 0);
+    snprintf(str_buffer, STR_BUFF_SZ, "mid: %u\n", mid);
+    res = FSA_WriteFile(fsaHandle, str_buffer, 1, strnlen(str_buffer, STR_BUFF_SZ), logfile, 0);
+    gfx_printf(20, y_offset+80, 0, "log_wirte result: %x", res);
 
     uint32_t cid[4];
     res = MDGetCID(blkDrv->deviceId, cid);
     if (res == 0) {
-        snprintf(strBuff, sizeof(strBuff), "CID: %08lx%08lx%08lx%08lx\n", cid[0], cid[1], cid[2], cid[3]);
-        FSA_WriteFile(fsaHandle, strBuff, strnlen(strBuff, sizeof(strBuff)), 1, logfile, 0);
+        snprintf(str_buffer, STR_BUFF_SZ, "CID: %08lx%08lx%08lx%08lx\n", cid[0], cid[1], cid[2], cid[3]);
+        FSA_WriteFile(fsaHandle, str_buffer, 1, strnlen(str_buffer, STR_BUFF_SZ), logfile, 0);
     }
 
     int fsa_raw_handle = 0xFFFFFFFF;
@@ -73,10 +82,10 @@ int mlc_dump(int fsaHandle, int y_offset){
             buffer_size = buffer_size_lba * mlc_block_size; 
         }
         if (!file) {
-            snprintf(strBuff, sizeof(strBuff), "/vol/storage_recovsd/mlc.bin.part%02d", ++current_file_index);
-            int res = FSA_OpenFile(fsaHandle, strBuff, "w", &file);
+            snprintf(str_buffer, STR_BUFF_SZ, "/vol/storage_recovsd/mlc.bin.part%02d", ++current_file_index);
+            int res = FSA_OpenFile(fsaHandle, str_buffer, "w", &file);
             if (res < 0) {
-                gfx_printf(20, y_offset, 0, "Failed to open %s for writing", strBuff);
+                gfx_printf(20, y_offset, 0, "Failed to open %s for writing", str_buffer);
                 goto error;
             }
         }
@@ -94,8 +103,8 @@ int mlc_dump(int fsaHandle, int y_offset){
         {
             read_errors2++;
             gfx_printf(20, y_offset + 20, 0, "mlc_result: %d", mlc_result);
-            snprintf(strBuff, sizeof(strBuff), "Readerror: %08llX;%i\n", lba, mlc_result);
-            FSA_WriteFile(fsaHandle, strBuff, strnlen(strBuff, sizeof(strBuff)), 1, logfile, 0);
+            snprintf(str_buffer, STR_BUFF_SZ, "Readerror: %08llX;%i\n", lba, mlc_result);
+            FSA_WriteFile(fsaHandle, str_buffer, 1, strnlen(str_buffer, STR_BUFF_SZ), logfile, 0);
             memset(io_buffer, 0xbaad, buffer_size);
             //read one sector at a time
             for(uint64_t s = 0; s < buffer_size_lba; s++){
@@ -107,9 +116,9 @@ int mlc_dump(int fsaHandle, int y_offset){
                 if(mlc_result){
                     bad_blocks++;
                 }
-                if(retry){
-                    snprintf(strBuff, sizeof(strBuff), "%08llX;%i;%i\n", lba + s, retry, mlc_result);
-                    FSA_WriteFile(fsaHandle, strBuff, strnlen(strBuff, sizeof(strBuff)), 1, logfile, 0);
+                if(retry>1){
+                    snprintf(str_buffer, STR_BUFF_SZ, "%08llX;%i;%i\n", lba + s, retry, mlc_result);
+                    FSA_WriteFile(fsaHandle, str_buffer, 1, strnlen(str_buffer, STR_BUFF_SZ), logfile, 0);
                 }
             }
             print_counter = 0; // print errors directly

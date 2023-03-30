@@ -3,6 +3,7 @@
 #include "mdinfo.h"
 #include "fsa.h"
 #include "menu.h"
+#include "utils.h"
 
 #include <string.h>
 #include <unistd.h>
@@ -73,8 +74,11 @@ int mlc_dump(int fsaHandle, int y_offset){
     uint32_t read_errors2 = 0;
     uint32_t bad_blocks = 0;
     uint64_t lba = 0;
+    uint8_t color = 0;
     do
     {
+        setNotificationLED(color?NOTIF_LED_BLUE:NOTIF_LED_ORANGE);
+        color=!color;
         uint64_t remaining_lbas = mlc_num_blocks - lba;
         if ( remaining_lbas < buffer_size_lba){
             buffer_size_lba = remaining_lbas;
@@ -150,6 +154,8 @@ error:
     gfx_printf(20, y_offset, GfxPrintFlag_ClearBG, "mlc         = %011llu / %011llu, res %08X, errors %lu, bad sectors %lu", lba * mlc_block_size, mlc_size, mlc_result, read_errors2, bad_blocks);
     if(logfile)
         FSA_CloseFile(fsaHandle, logfile);
+
+    setNotificationLED(NOTIF_LED_RED | NOTIF_LED_BLUE);
     return result;
 }
 
@@ -202,8 +208,10 @@ int slc_dump(int fsaHandle, int y_offset, char *filename){
     int slc_result = 0;
     uint64_t offset = 0;
     int local_retry = 0;
+    uint8_t color = 0;
     do
     {
+        setNotificationLED(color?NOTIF_LED_BLUE:NOTIF_LED_ORANGE);
         //! print only every 4th time
         if(print_counter == 0)
         {
@@ -257,6 +265,7 @@ error:
     // last print to show "done"
     gfx_printf(20, y_offset, GfxPrintFlag_ClearBG, "slc         = %09llu / %09llu, res %08X, error %d", offset, slc_size, slc_result, read_error);
 
+    setNotificationLED(NOTIF_LED_RED | NOTIF_LED_BLUE);
     return result;
 }
 

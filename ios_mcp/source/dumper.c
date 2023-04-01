@@ -77,8 +77,6 @@ int mlc_dump(int fsaHandle, int y_offset){
     uint8_t color = 0;
     do
     {
-        setNotificationLED(color?NOTIF_LED_BLUE:NOTIF_LED_ORANGE);
-        color=!color;
         uint64_t remaining_lbas = mlc_num_blocks - lba;
         if ( remaining_lbas < buffer_size_lba){
             buffer_size_lba = remaining_lbas;
@@ -95,6 +93,8 @@ int mlc_dump(int fsaHandle, int y_offset){
         //! print only every 4th time
         if(print_counter-- == 0)
         {
+            setNotificationLED(color?NOTIF_LED_BLUE:NOTIF_LED_ORANGE);
+            color=!color;
             print_counter = 40;
             gfx_printf(20, y_offset, GfxPrintFlag_ClearBG, "mlc         = %011llu / %011llu, mlc res %08X, errors %lu, bad sectors %lu", lba * mlc_block_size, mlc_size, mlc_result, read_errors2, bad_blocks);
         }
@@ -283,10 +283,13 @@ static void ssleep(uint32_t s){
 }
 
 void dump_nand_complete(int fsaHandle){
-    gfx_print(20, 30, GfxPrintFlag_ClearBG, "Waiting for System to settle...");
-    ssleep(20);
-    gfx_printf(20, 30, GfxPrintFlag_ClearBG, "Unmounting MLC...");
-    int res = FSA_Unmount(fsaHandle, "/vol/storage_mlc01", 2);
+    int res = -1;
+    for(uint8_t i=0; res && (i< 10); i++){
+        gfx_print(20, 30, GfxPrintFlag_ClearBG, "Waiting for System to settle...");
+        ssleep(5);
+        gfx_printf(20, 30, GfxPrintFlag_ClearBG, "Unmounting MLC...");
+        res = FSA_Unmount(fsaHandle, "/vol/storage_mlc01", 2);
+    }
     check_result(res, 30);
     ssleep(10);
     gfx_printf(20, 45, GfxPrintFlag_ClearBG, "Unmounting SLC...");

@@ -45,6 +45,8 @@ static void option_EditParental(void);
 static void option_DebugSystemRegion(void);
 static void option_SystemInformation(void);
 static void option_Shutdown(void);
+static void option_formatMlc(void);
+static void option_cloneMlc(void);
 
 extern int ppcHeartBeatThreadId;
 extern uint64_t currentColdbootOS;
@@ -62,6 +64,9 @@ typedef struct Menu {
 
 static const Menu mainMenuOptions[] = {
     {"Dump SLC + MLC",              {.callback = option_dumpNand}},
+    {"CLone MLC",                   {.callback = option_cloneMlc}},
+    {"Format MLC (Brick Mii)",      {.callback = option_formatMlc}},
+    {"Shutdown",                    {.callback = option_Shutdown}},
     {"Set Coldboot Title",          {.callback = option_SetColdbootTitle}},
     {"Dump Syslogs",                {.callback = option_DumpSyslogs}},
     {"Dump OTP + SEEPROM",          {.callback = option_DumpOtpAndSeeprom}},
@@ -72,7 +77,6 @@ static const Menu mainMenuOptions[] = {
     {"Edit Parental Controls",      {.callback = option_EditParental}},
     {"Debug System Region",         {.callback = option_DebugSystemRegion}},
     {"System Information",          {.callback = option_SystemInformation}},
-    {"Shutdown",                    {.callback = option_Shutdown}},
 };
 
 static void drawTopBar(const char* title)
@@ -1434,6 +1438,51 @@ static void option_SystemInformation(void)
     waitButtonInput();
 }
 
+
+static void option_formatMlc(void){
+    gfx_clear(COLOR_BACKGROUND);
+    drawTopBar("Formatting MLC...");
+    int res = -1;
+    for(uint8_t i=0; res && (i< 10); i++){
+        gfx_print(20, 30, GfxPrintFlag_ClearBG, "Waiting for System to settle...");
+        usleep(5 * 1000 * 1000);
+        gfx_printf(20, 30, GfxPrintFlag_ClearBG, "Unmounting MLC...");
+        res = FSA_Unmount(fsaHandle, "/vol/storage_mlc01", 2);
+    }
+    if (res) {
+        gfx_set_font_color(COLOR_ERROR);
+        gfx_printf(160, 45, 0, "Error %x", res);
+        waitButtonInput();
+        gfx_set_font_color(COLOR_PRIMARY);
+    }
+    gfx_print(20, 60, GfxPrintFlag_ClearBG, "Formatting MLC...");
+    res = FSA_Format(fsaHandle, "/dev/mlc01", "wfs", 0, NULL, 0);
+    gfx_printf(40, 85, 0, "Result -%08X", -res);
+    gfx_print(20, 200, GfxPrintFlag_ClearBG, "Mounting MLC...");
+    res = FSA_Mount(fsaHandle, "/dev/mlc01", "/vol/storage_mlc01", 2, NULL, 0);
+    gfx_printf(40, 225, 0, "Result -%08X", -res);
+    waitButtonInput();
+    dump_nand_complete(fsaHandle);
+    waitButtonInput();
+}
+
+static void option_cloneMlc(void){
+    gfx_clear(COLOR_BACKGROUND);
+    drawTopBar("Cloning MLC...");
+    gfx_print(20, 30, GfxPrintFlag_ClearBG, "Unmounting SDCard...");
+    FSA_Unmount(fsaHandle, "/vol/storage_recovsd", 2);
+    gfx_print(20, 50, GfxPrintFlag_ClearBG, "Now Insert target SD Card. ALL DATA ON THE SD WILL BE LOST!!!");
+    waitButtonInput();
+    unmount_mlc(fsaHandle, 70);
+    int res = mlc_clone(fsaHandle, 90);
+    if(!res){
+        gfx_print(20, 130, GfxPrintFlag_ClearBG, "finished!");
+        gfx_print(20, 150, GfxPrintFlag_ClearBG, "Now remove power from the console, only turn it on again after the replacement is complete!");
+        gfx_print(20, 170, GfxPrintFlag_ClearBG, "If you turn on the console in between, you have to redo the clone again or the SLC cache will missmatch!!!");
+    }
+    waitButtonInput();
+}
+
 static void option_Shutdown(void)
 {
     if (fsaHandle > 0) {
@@ -1462,7 +1511,7 @@ int menuThread(void* arg)
     resetPPC();
 
     // cut power to the disc drive to not eject a disc every eject press
-    setDrivePower(0);
+    //setDrivePower(0);
 
 #ifdef DC_INIT
     /* Note: CONFIGURATION_0 is 720p instead of 480p,

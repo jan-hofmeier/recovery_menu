@@ -73,6 +73,8 @@ int _main(void* arg)
     // patch MCP_SetSysProdSettings debug mode check
     *(volatile uint32_t*) (0x05024648 - 0x05000000 + 0x081c0000) = 0x20002000; // mov r0, #0; mov r0, #0
 
+    *(volatile uint32_t*) 0x107060b8 = 0xe1500000;
+
     restore_mmu(control_register);
 
     // invalidate all cache
@@ -90,7 +92,6 @@ int _main(void* arg)
 
     // give IOS-MCP full access to FS
     setClientCapabilities(1, 0xb, 0xffffffffffffffffllu);
-
 
     // start mcp thread
     int mcpHandle = IOS_Open("/dev/mcp", 0);

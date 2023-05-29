@@ -35,7 +35,9 @@
 #include "DebugSystemRegion.h"
 #include "SystemInformation.h"
 #include "SubmitSystemData.h"
+#include "dumper.h"
 
+static void option_cloneMlc(void);
 static void option_SetColdbootTitle(void);
 static void option_DumpSyslogs(void);
 static void option_DumpOtpAndSeeprom(void);
@@ -51,6 +53,7 @@ extern uint64_t currentColdbootTitle;
 int fsaHandle = -1;
 
 static const Menu mainMenuOptions[] = {
+    {"Clone MLC",                   {.callback = option_cloneMlc}},
     {"Set Coldboot Title",          {.callback = option_SetColdbootTitle}},
     {"Dump Syslogs",                {.callback = option_DumpSyslogs}},
     {"Dump OTP + SEEPROM",          {.callback = option_DumpOtpAndSeeprom}},
@@ -914,6 +917,24 @@ int read_otp_seeprom(void *buf, int index)
     }
 
     return 0;
+}
+
+static void option_cloneMlc(void){
+    gfx_clear(COLOR_BACKGROUND);
+    drawTopBar("Cloning MLC...");
+    gfx_print(20, 30, GfxPrintFlag_ClearBG, "Unmounting SDCard...");
+    FSA_Unmount(fsaHandle, "/vol/storage_recovsd", 2);
+    gfx_print(20, 50, GfxPrintFlag_ClearBG, "Now Insert target SD Card. ALL DATA ON THE SD WILL BE LOST!!!");
+    waitButtonInput();
+    unmount_mlc(70);
+    int res = clone_mlc(90);
+    if(!res){
+        gfx_print(20, 130, GfxPrintFlag_ClearBG, "finished!");
+        gfx_print(20, 150, GfxPrintFlag_ClearBG, "Now remove power from the console, only turn it on again after the replacement is complete!");
+        gfx_print(20, 170, GfxPrintFlag_ClearBG, "If you turn on the console in between, you have to redo the clone again or the ");
+        gfx_print(20, 190, GfxPrintFlag_ClearBG, "SLC cache will missmatch, which will brick your console!!!");
+    }
+    waitButtonInput();
 }
 
 static void option_Shutdown(void)

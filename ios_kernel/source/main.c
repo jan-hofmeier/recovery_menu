@@ -91,6 +91,9 @@ int _main(void* arg)
     // give the current thread full access to MCP for starting the thread
     setClientCapabilities(currentThreadContext->pid, 0xd, 0xffffffffffffffffllu);
 
+    // give IOS-MCP full access to FS
+    setClientCapabilities(1, 0xb, 0xffffffffffffffffllu);
+
     // start mcp thread
     int mcpHandle = IOS_Open("/dev/mcp", 0);
     if (mcpHandle > 0) {

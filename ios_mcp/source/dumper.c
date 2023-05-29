@@ -121,8 +121,12 @@ int clone_mlc(int y_offset){
     while(lba < mlc_num_blocks); //! TODO: make define MLC32_SECTOR_COUNT:
 
     result = 0;
+    SMC_SetNotificationLED(NOTIF_LED_RED | NOTIF_LED_BLUE);
 
 error:
+    if(result)
+        SMC_SetNotificationLED(NOTIF_LED_RED_BLINKING);
+        
     IOS_HeapFree(CROSS_PROCESS_HEAP_ID, io_buffer);
     if (fsa_raw_dest) {
         FSA_RawClose(fsaHandle, fsa_raw_dest);
@@ -131,7 +135,6 @@ error:
     // last print to show "done"
     gfx_printf(20, y_offset, GfxPrintFlag_ClearBG, "mlc         = %011llu / %011llu, res %08X, errors %lu, bad sectors %lu", lba * mlc_block_size, mlc_size, mlc_result, read_errors2, bad_blocks);
 
-    SMC_SetNotificationLED(NOTIF_LED_RED | NOTIF_LED_BLUE);
     return result;
 }
 

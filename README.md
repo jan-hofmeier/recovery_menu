@@ -99,10 +99,10 @@ This is entirely optional and personally identifying information will be kept co
 ### Clone MLC
 
 Clones the MLC to the SD card and overwrites the SD card in the process.  
-After selecting the Option the SD card will be unmounted and you can replace it with another SD card. You have to confirm then again to start the clone process.  
+After selecting the option the SD card will be unmounted so you can replace it. You have to confirm then again to start the clone process.  
 During the clone process the LED will change color between yellow and blue. After the clone is finished the LED will turn purple. If the clone failed it will blink red.  
-After the clone is done, you should take an Image of the SD card and check it with wfs-extract.  
-**IMPORTANT:** If you plan to use the clone to replace the eMMC, you should not turn on the console again after the clone until use replaced the eMMC with the clone. If the console was turned on in between the SLC cache will missmatch and and the file system will corrupt irrecoverable. After you booted the console once of the the clone, you can not go back to the original eMMC, or the SLC cache would also missmatch.
+After the clone is done, you should take an image of the SD card and check it with wfs-extract.  
+**IMPORTANT:** If you plan to use the clone to replace the eMMC, you should not turn on the console again until you replaced the eMMC with the clone. If the console was turned on in between the SLC cache will missmatch and the file system will corrupt irrecoverable. After you booted the console once of the clone you can not go back to the original eMMC or the SLC cache would also missmatch.
 
 ## Building
 

@@ -65,7 +65,7 @@ typedef struct Menu {
 static const Menu mainMenuOptions[] = {
     {"Dump SLC + MLC",              {.callback = option_dumpNand}},
     {"CLone MLC",                   {.callback = option_cloneMlc}},
-    {"Format MLC (Brick Mii)",      {.callback = option_formatMlc}},
+    //{"Format MLC (Brick Mii)",      {.callback = option_formatMlc}},
     {"Shutdown",                    {.callback = option_Shutdown}},
     {"Set Coldboot Title",          {.callback = option_SetColdbootTitle}},
     {"Dump Syslogs",                {.callback = option_DumpSyslogs}},
@@ -229,6 +229,7 @@ static void option_dumpNand(void){
     gfx_clear(COLOR_BACKGROUND);
     drawTopBar("Dumping NAND...");
     dump_nand_complete(fsaHandle);
+    FSA_FlushVolume(fsaHandle, "/vol/storage_recovsd");
     waitButtonInput();
 }
 

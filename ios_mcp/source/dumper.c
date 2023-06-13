@@ -252,30 +252,44 @@ int mlc_dump(int fsaHandle, int y_offset){
             gfx_printf(20, y_offset, GfxPrintFlag_ClearBG, "mlc         = %011llu / %011llu, mlc res %08X, errors %lu, bad sectors %lu", lba * mlc_block_size, mlc_size, mlc_result, read_errors2, bad_blocks);
         }
 
-        mlc_result = FSA_RawRead(fsaHandle, io_buffer, mlc_block_size, buffer_size_lba, lba, fsa_raw_handle);
+        memset(io_buffer, 0xbaad, buffer_size);
+        
+        int try = 0;
+        do{
+            mlc_result = FSA_RawRead(fsaHandle, io_buffer, mlc_block_size, buffer_size_lba, lba, fsa_raw_handle);
+            try++;
+            if(mlc_result)
+                usleep(1000);
+        }while(mlc_result && (try < 5));
+
+        if(try>1){
+            snprintf(str_buffer, STR_BUFF_SZ, "%08llX;%u;%u\n", lba, try, mlc_result);
+            FSA_WriteFile(fsaHandle, str_buffer, 1, strnlen(str_buffer, STR_BUFF_SZ), logfile, 0);
+        }
 
         //! retry 5 times as there are read failures in several places
         if(mlc_result)
         {
+            bad_blocks++;
             read_errors2++;
             gfx_printf(20, y_offset + 20, 0, "mlc_result: %d", mlc_result);
-            snprintf(str_buffer, STR_BUFF_SZ, "Readerror: %08llX;%u\n", lba, mlc_result);
-            FSA_WriteFile(fsaHandle, str_buffer, 1, strnlen(str_buffer, STR_BUFF_SZ), logfile, 0);
-            memset(io_buffer, 0xbaad, buffer_size);
+            //snprintf(str_buffer, STR_BUFF_SZ, "Readerror: %08llX;%u\n", lba, mlc_result);
+            //FSA_WriteFile(fsaHandle, str_buffer, 1, strnlen(str_buffer, STR_BUFF_SZ), logfile, 0);
             //read one sector at a time
             for(uint64_t s = 0; s < buffer_size_lba; s++){
-                int retry;
-                for(retry=0; mlc_result && (retry < 5); retry++){
+                //int retry;
+                //for(retry=0; mlc_result && (retry < 5); retry++){
                     usleep(1000);
+                    // single sector reads don't seem to fail on hynix
                     mlc_result = FSA_RawRead(fsaHandle, io_buffer, mlc_block_size, 1, lba + s, fsa_raw_handle);
-                }
-                if(mlc_result){
-                    bad_blocks++;
-                }
-                if(retry>1){
-                    snprintf(str_buffer, STR_BUFF_SZ, "%08llX;%u;%u\n", lba + s, retry, mlc_result);
-                    FSA_WriteFile(fsaHandle, str_buffer, 1, strnlen(str_buffer, STR_BUFF_SZ), logfile, 0);
-                }
+                // }
+                // if(mlc_result){
+                //     bad_blocks++;
+                // }
+                // if(retry>1){
+                //     snprintf(str_buffer, STR_BUFF_SZ, "%08llX;%u;%u\n", lba + s, retry, mlc_result);
+                //     FSA_WriteFile(fsaHandle, str_buffer, 1, strnlen(str_buffer, STR_BUFF_SZ), logfile, 0);
+                // }
             }
             print_counter = 0; // print errors directly
         }

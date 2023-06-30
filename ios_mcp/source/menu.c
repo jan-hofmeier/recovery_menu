@@ -47,6 +47,7 @@ static void option_SystemInformation(void);
 static void option_Shutdown(void);
 static void option_formatMlc(void);
 static void option_cloneMlc(void);
+static void option_dumpSlcCloneMlc(void);
 
 extern int ppcHeartBeatThreadId;
 extern uint64_t currentColdbootOS;
@@ -64,7 +65,8 @@ typedef struct Menu {
 
 static const Menu mainMenuOptions[] = {
     {"Dump SLC + MLC",              {.callback = option_dumpNand}},
-    {"CLone MLC",                   {.callback = option_cloneMlc}},
+    {"Dump SLC + Clone MLC",        {.callback = option_dumpSlcCloneMlc}},
+    {"Clone MLC",                   {.callback = option_cloneMlc}},
     //{"Format MLC (Brick Mii)",      {.callback = option_formatMlc}},
     {"Shutdown",                    {.callback = option_Shutdown}},
     {"Set Coldboot Title",          {.callback = option_SetColdbootTitle}},
@@ -1467,21 +1469,46 @@ static void option_formatMlc(void){
     waitButtonInput();
 }
 
+
+static void cloneMlcCheckResult(int y_offset){
+
+    drawTopBar("Cloning MLC...");
+    int res = mlc_clone(fsaHandle, y_offset+= 40);
+    if(!res){
+        gfx_print(y_offset += 20, y_offset, GfxPrintFlag_ClearBG, "finished!");
+        gfx_print(y_offset += 20, 150, GfxPrintFlag_ClearBG, "Now remove power from the console, only turn it on again after the replacement is complete!");
+        gfx_print(y_offset += 20, 170, GfxPrintFlag_ClearBG, "If you turn on the console in between, you have to redo the clone again or the SLC cache will missmatch!!!");
+    }
+    waitButtonInput();
+}
+
 static void option_cloneMlc(void){
     gfx_clear(COLOR_BACKGROUND);
-    drawTopBar("Cloning MLC...");
+    drawTopBar("Clone MLC");
     gfx_print(20, 30, GfxPrintFlag_ClearBG, "Unmounting SDCard...");
+    FSA_FlushVolume(fsaHandle, "/vol/storage_recovsd");
     FSA_Unmount(fsaHandle, "/vol/storage_recovsd", 2);
     gfx_print(20, 50, GfxPrintFlag_ClearBG, "Now Insert target SD Card. ALL DATA ON THE SD WILL BE LOST!!!");
     waitButtonInput();
     unmount_mlc(fsaHandle, 70);
-    int res = mlc_clone(fsaHandle, 90);
-    if(!res){
-        gfx_print(20, 130, GfxPrintFlag_ClearBG, "finished!");
-        gfx_print(20, 150, GfxPrintFlag_ClearBG, "Now remove power from the console, only turn it on again after the replacement is complete!");
-        gfx_print(20, 170, GfxPrintFlag_ClearBG, "If you turn on the console in between, you have to redo the clone again or the SLC cache will missmatch!!!");
-    }
+    cloneMlcCheckResult(90);
+}
+
+static void option_dumpSlcCloneMlc(void){
+    gfx_clear(COLOR_BACKGROUND);
+    drawTopBar("Dumping SLC...");
+    unmount_mlc(fsaHandle, 30);
+    gfx_printf(20, 50, GfxPrintFlag_ClearBG, "Unmounting SLC...");
+    unmount_slc(fsaHandle, 70);
+    slc_dump(fsaHandle, 90, "/vol/storage_recovsd/slc.bin");
+    FSA_FlushVolume(fsaHandle, "/vol/storage_recovsd");
+    FSA_Unmount(fsaHandle, "/vol/storage_recovsd", 2);
+    drawTopBar("Clone MLC");
+    gfx_print(20, 130, GfxPrintFlag_ClearBG, "Now remove the SD Card and copy the slc.bin to the PC");
+    gfx_print(20, 150, GfxPrintFlag_ClearBG, "Then insert the target SD Card for the MLC Clone");
+    gfx_print(20, 170, GfxPrintFlag_ClearBG, "ALL DATA ON THE SDCARD WILL BE LOST!!!");
     waitButtonInput();
+    cloneMlcCheckResult(190);
 }
 
 static void option_Shutdown(void)

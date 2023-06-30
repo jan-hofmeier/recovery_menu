@@ -114,6 +114,31 @@ int mlc_clone(int fsaHandle, int y_offset){
             }
             print_counter = 0; // print errors directly
         }
+
+
+        memset(io_buffer, 0xbaad, buffer_size);
+        
+        int try = 0;
+        do{
+            mlc_result = FSA_RawRead(fsaHandle, io_buffer, mlc_block_size, buffer_size_lba, lba, fsa_raw_handle);
+            try++;
+            if(mlc_result)
+                usleep(1000);
+        } while(mlc_result && (try < 5));
+
+        //! retry 5 times as there are read failures in several places
+        if(mlc_result)
+        {
+            bad_blocks++;
+            read_errors2++;
+            gfx_printf(20, y_offset + 20, 0, "mlc_result: %d", mlc_result);
+            for(uint64_t s = 0; s < buffer_size_lba; s++){
+                usleep(1000);
+                mlc_result = FSA_RawRead(fsaHandle, io_buffer, mlc_block_size, 1, lba + s, fsa_raw_handle);
+            }
+            print_counter = 0; // print errors directly
+        }
+
         int write_result = FSA_RawWrite(fsaHandle, io_buffer, mlc_block_size, buffer_size_lba, lba, fsa_raw_dest);
         if (write_result) {
             gfx_printf(20, y_offset + 20, GfxPrintFlag_ClearBG, "mlc: Failed to write %d bytes to file (result: -%08X)!", buffer_size, -write_result);
@@ -149,6 +174,20 @@ static void check_result(int res, int y_offset){
         waitButtonInput();
         gfx_set_font_color(COLOR_PRIMARY);
     }
+}
+ 
+
+int unmount_slc(int fsaHandle, int y_offset){
+    FSA_FlushVolume(fsaHandle, "/vol/system");
+    int res = -1;
+    for(uint8_t i=0; res && (i< 10); i++){
+        gfx_print(20, y_offset, GfxPrintFlag_ClearBG, "Waiting for System to settle...");
+        ssleep(5);
+        gfx_printf(20, y_offset, GfxPrintFlag_ClearBG, "Unmounting SLC...");
+        res = FSA_Unmount(fsaHandle, "/vol/system", 0);
+    }
+    check_result(res, y_offset);
+    return res; 
 }
 
 int unmount_mlc(int fsaHandle, int y_offset){
@@ -439,10 +478,7 @@ error:
 void dump_nand_complete(int fsaHandle){
     unmount_mlc(fsaHandle, 30);
     ssleep(10);
-    gfx_printf(20, 45, GfxPrintFlag_ClearBG, "Unmounting SLC...");
-    int res = FSA_Unmount(fsaHandle, "/vol/system", 0);
-    check_result(res, 45);
-
+    unmount_slc(fsaHandle, 50);
     slc_dump(fsaHandle, 75, "/vol/storage_recovsd/slc1.bin");
     //slc_dump(fsaHandle, 125, "/vol/storage_recovsd/slc2.bin");
     mlc_dump(fsaHandle, 125);

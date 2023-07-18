@@ -74,6 +74,24 @@ int FSA_FlushVolume(int fd, const char* volume_path)
     return ret;
 }
 
+int FSA_Format(int fd, const char* device, const char* format, uint32_t flags, const void* arg, uint32_t arg_len)
+{
+    uint8_t* iobuf = allocIobuf();
+    uint32_t* inbuf = (uint32_t*)iobuf;
+    uint32_t* outbuf = (uint32_t*)&iobuf[0x520];
+
+    strncpy((char*)&inbuf[0x04 / 4], device, 0x27F);
+    strncpy((char*)&inbuf[0x284 / 4], format, 0x8);
+    inbuf[0x28c / 4] = flags;
+    inbuf[0x290 / 4] = arg;
+    inbuf[0x294 / 4] = arg_len;
+
+    int ret = IOS_Ioctl(fd, 0x69, inbuf, 0x520, outbuf, 0x293);
+
+    freeIobuf(iobuf);
+    return ret;
+}
+
 int FSA_MakeDir(int fd, const char* path, uint32_t flags)
 {
     uint8_t* iobuf = allocIobuf();

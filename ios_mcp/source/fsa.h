@@ -55,3 +55,6 @@ int FSA_RawOpen(int fd, const char* device_path, int* outHandle);
 int FSA_RawRead(int fd, void* data, uint32_t size_bytes, uint32_t cnt, uint64_t sector_offset, int device_handle);
 int FSA_RawWrite(int fd, void* data, uint32_t size_bytes, uint32_t cnt, uint64_t sector_offset, int device_handle);
 int FSA_RawClose(int fd, int device_handle);
+
+int FSA_FormatEx(int handle,char *devPath,char *type,uint flags,char *arg_string,uint args_len);
+int FSA_Format(int fd, const char* device, const char* format, uint32_t flags, const void* arg, uint32_t arg_len);

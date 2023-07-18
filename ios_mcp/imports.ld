@@ -63,3 +63,5 @@ PROVIDE(IOSC_GenerateRand = 0x05052228);
 PROVIDE(IOSC_GetDeviceCertificate = 0x0505229c);
 PROVIDE(IOSC_ImportSecretKey = 0x05053504);
 PROVIDE(IOSC_ImportPublicKey = 0x050532c8);
+
+PROVIDE(FSA_FormatEx = 0x05034c84);

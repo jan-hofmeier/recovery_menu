@@ -26,6 +26,8 @@
 #include "mcp_install.h"
 #include "sci.h"
 #include "mcp_misc.h"
+#include "mdinfo.h"
+#include "dumper.h"
 
 #include <string.h>
 #include <unistd.h>
@@ -38,6 +40,8 @@
 #include "SubmitSystemData.h"
 #include "file_check.h"
 
+
+static void option_dumpNand(void);
 static void option_SetColdbootTitle(void);
 static void option_DumpSyslogs(void);
 static void option_DumpOtpAndSeeprom(void);
@@ -47,6 +51,9 @@ static void option_EditParental(void);
 static void option_SetInitialLaunch(void);
 static void option_Shutdown(void);
 static void option_checkMLC(void);
+static void option_formatMlc(void);
+static void option_cloneMlc(void);
+static void option_dumpSlcCloneMlc(void);
 
 extern int ppcHeartBeatThreadId;
 extern uint64_t currentColdbootOS;
@@ -55,6 +62,12 @@ extern uint64_t currentColdbootTitle;
 int fsaHandle = -1;
 
 static const Menu mainMenuOptions[] = {
+    {"Dump SLC + MLC",              {.callback = option_dumpNand}},
+    {"Dump SLC + Clone MLC",        {.callback = option_dumpSlcCloneMlc}},
+    {"Clone MLC",                   {.callback = option_cloneMlc}},
+    {"Check MLC",                   {.callback = option_checkMLC}},
+    {"Set Initinal Launch",         {.callback = option_SetInitialLaunch}},
+    //{"Format MLC (Brick Mii)",      {.callback = option_formatMlc}},
     {"Set Coldboot Title",          {.callback = option_SetColdbootTitle}},
     {"Dump Syslogs",                {.callback = option_DumpSyslogs}},
     {"Dump OTP + SEEPROM",          {.callback = option_DumpOtpAndSeeprom}},
@@ -63,9 +76,7 @@ static const Menu mainMenuOptions[] = {
     {"Pair Gamepad",                {.callback = option_PairDRC}},
     {"Install WUP",                 {.callback = option_InstallWUP}},
     {"Edit Parental Controls",      {.callback = option_EditParental}},
-    {"Set Initinal Launch",         {.callback = option_SetInitialLaunch}},
     {"Debug System Region",         {.callback = option_DebugSystemRegion}},
-    {"Check MLC",                   {.callback = option_checkMLC}},
     {"System Information",          {.callback = option_SystemInformation}},
     {"Submit System Data",          {.callback = option_SubmitSystemData}},
     {"Shutdown",                    {.callback = option_Shutdown}},
@@ -227,6 +238,14 @@ void waitButtonInput(void)
             cur_flag = flag;
         }
     }
+}
+
+static void option_dumpNand(void){
+    gfx_clear(COLOR_BACKGROUND);
+    drawTopBar("Dumping NAND...");
+    dump_nand_complete(fsaHandle);
+    FSA_FlushVolume(fsaHandle, "/vol/storage_recovsd");
+    waitButtonInput();
 }
 
 void print_error(int index, const char *msg)
@@ -998,6 +1017,78 @@ static void option_SetInitialLaunch(void)
         }
 
     }
+}
+
+
+
+
+static void option_formatMlc(void){
+    gfx_clear(COLOR_BACKGROUND);
+    drawTopBar("Formatting MLC...");
+    int res = -1;
+    for(uint8_t i=0; res && (i< 10); i++){
+        gfx_print(20, 30, GfxPrintFlag_ClearBG, "Waiting for System to settle...");
+        usleep(5 * 1000 * 1000);
+        gfx_printf(20, 30, GfxPrintFlag_ClearBG, "Unmounting MLC...");
+        res = FSA_Unmount(fsaHandle, "/vol/storage_mlc01", 2);
+    }
+    if (res) {
+        gfx_set_font_color(COLOR_ERROR);
+        gfx_printf(160, 45, 0, "Error %x", res);
+        waitButtonInput();
+        gfx_set_font_color(COLOR_PRIMARY);
+    }
+    gfx_print(20, 60, GfxPrintFlag_ClearBG, "Formatting MLC...");
+    res = FSA_Format(fsaHandle, "/dev/mlc01", "wfs", 0, NULL, 0);
+    gfx_printf(40, 85, 0, "Result -%08X", -res);
+    gfx_print(20, 200, GfxPrintFlag_ClearBG, "Mounting MLC...");
+    res = FSA_Mount(fsaHandle, "/dev/mlc01", "/vol/storage_mlc01", 2, NULL, 0);
+    gfx_printf(40, 225, 0, "Result -%08X", -res);
+    waitButtonInput();
+    dump_nand_complete(fsaHandle);
+    waitButtonInput();
+}
+
+
+static void cloneMlcCheckResult(int y_offset){
+
+    drawTopBar("Cloning MLC...");
+    int res = mlc_clone(fsaHandle, y_offset+= 40);
+    if(!res){
+        gfx_print(y_offset += 20, y_offset, GfxPrintFlag_ClearBG, "finished!");
+        gfx_print(y_offset += 20, 150, GfxPrintFlag_ClearBG, "Now remove power from the console, only turn it on again after the replacement is complete!");
+        gfx_print(y_offset += 20, 170, GfxPrintFlag_ClearBG, "If you turn on the console in between, you have to redo the clone again or the SLC cache will missmatch!!!");
+    }
+    waitButtonInput();
+}
+
+static void option_cloneMlc(void){
+    gfx_clear(COLOR_BACKGROUND);
+    drawTopBar("Clone MLC");
+    gfx_print(20, 30, GfxPrintFlag_ClearBG, "Unmounting SDCard...");
+    FSA_FlushVolume(fsaHandle, "/vol/storage_recovsd");
+    FSA_Unmount(fsaHandle, "/vol/storage_recovsd", 2);
+    gfx_print(20, 50, GfxPrintFlag_ClearBG, "Now Insert target SD Card. ALL DATA ON THE SD WILL BE LOST!!!");
+    waitButtonInput();
+    unmount_mlc(fsaHandle, 70);
+    cloneMlcCheckResult(90);
+}
+
+static void option_dumpSlcCloneMlc(void){
+    gfx_clear(COLOR_BACKGROUND);
+    drawTopBar("Dumping SLC...");
+    unmount_mlc(fsaHandle, 30);
+    gfx_printf(20, 50, GfxPrintFlag_ClearBG, "Unmounting SLC...");
+    unmount_slc(fsaHandle, 70);
+    slc_dump(fsaHandle, 90, "/vol/storage_recovsd/slc.bin");
+    FSA_FlushVolume(fsaHandle, "/vol/storage_recovsd");
+    FSA_Unmount(fsaHandle, "/vol/storage_recovsd", 2);
+    drawTopBar("Clone MLC");
+    gfx_print(20, 130, GfxPrintFlag_ClearBG, "Now remove the SD Card and copy the slc.bin to the PC");
+    gfx_print(20, 150, GfxPrintFlag_ClearBG, "Then insert the target SD Card for the MLC Clone");
+    gfx_print(20, 170, GfxPrintFlag_ClearBG, "ALL DATA ON THE SDCARD WILL BE LOST!!!");
+    waitButtonInput();
+    cloneMlcCheckResult(190);
 }
 
 static void option_Shutdown(void)

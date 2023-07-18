@@ -105,3 +105,4 @@ int getRegionInfo(int* productArea_id, int* gameRegion);
  * @return 0 on success; non-zero on error.
  */
 int read_otp_seeprom(void *buf, int index);
+void waitButtonInput(void);

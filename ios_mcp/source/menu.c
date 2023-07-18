@@ -982,9 +982,9 @@ static void cloneMlcCheckResult(int y_offset){
     drawTopBar("Cloning MLC...");
     int res = mlc_clone(fsaHandle, y_offset+= 40);
     if(!res){
-        gfx_print(y_offset += 20, y_offset, GfxPrintFlag_ClearBG, "finished!");
-        gfx_print(y_offset += 20, 150, GfxPrintFlag_ClearBG, "Now remove power from the console, only turn it on again after the replacement is complete!");
-        gfx_print(y_offset += 20, 170, GfxPrintFlag_ClearBG, "If you turn on the console in between, you have to redo the clone again or the SLC cache will missmatch!!!");
+        gfx_print(20, y_offset += 20, GfxPrintFlag_ClearBG, "finished!");
+        gfx_print(20, y_offset += 20, GfxPrintFlag_ClearBG, "Now remove power from the console, only turn it on again after the replacement is complete!");
+        gfx_print(20, y_offset += 20, GfxPrintFlag_ClearBG, "If you turn on the console in between, you have to redo the clone again or the SLC cache will missmatch!!!");
     }
     waitButtonInput();
 }

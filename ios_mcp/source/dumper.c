@@ -87,7 +87,7 @@ int mlc_clone(int fsaHandle, int y_offset){
         //! print only every 4th time
         if(print_counter-- == 0)
         {
-            setNotificationLED(color?NOTIF_LED_BLUE:NOTIF_LED_ORANGE);
+            SMC_SetNotificationLED(color?NOTIF_LED_BLUE:NOTIF_LED_ORANGE);
             color=!color;
             print_counter = 40;
             gfx_printf(20, y_offset, GfxPrintFlag_ClearBG, "mlc         = %011llu / %011llu, mlc res %08X, errors %lu, bad sectors %lu", lba * mlc_block_size, mlc_size, mlc_result, read_errors2, bad_blocks);
@@ -159,7 +159,7 @@ error:
     // last print to show "done"
     gfx_printf(20, y_offset, GfxPrintFlag_ClearBG, "mlc         = %011llu / %011llu, res %08X, errors %lu, bad sectors %lu", lba * mlc_block_size, mlc_size, mlc_result, read_errors2, bad_blocks);
 
-    setNotificationLED(NOTIF_LED_RED | NOTIF_LED_BLUE);
+    SMC_SetNotificationLED(NOTIF_LED_RED | NOTIF_LED_BLUE);
     return result;
 }
 
@@ -285,7 +285,7 @@ int mlc_dump(int fsaHandle, int y_offset){
         //! print only every 4th time
         if(print_counter-- == 0)
         {
-            setNotificationLED(color?NOTIF_LED_BLUE:NOTIF_LED_ORANGE);
+            SMC_SetNotificationLED(color?NOTIF_LED_BLUE:NOTIF_LED_ORANGE);
             color=!color;
             print_counter = 40;
             gfx_printf(20, y_offset, GfxPrintFlag_ClearBG, "mlc         = %011llu / %011llu, mlc res %08X, errors %lu, bad sectors %lu", lba * mlc_block_size, mlc_size, mlc_result, read_errors2, bad_blocks);
@@ -361,7 +361,7 @@ error:
     if(logfile)
         FSA_CloseFile(fsaHandle, logfile);
 
-    setNotificationLED(NOTIF_LED_RED | NOTIF_LED_BLUE);
+    SMC_SetNotificationLED(NOTIF_LED_RED | NOTIF_LED_BLUE);
     return result;
 }
 
@@ -417,7 +417,7 @@ int slc_dump(int fsaHandle, int y_offset, char *filename){
     uint8_t color = 0;
     do
     {
-        setNotificationLED(color?NOTIF_LED_BLUE:NOTIF_LED_ORANGE);
+        SMC_SetNotificationLED(color?NOTIF_LED_BLUE:NOTIF_LED_ORANGE);
         //! print only every 4th time
         if(print_counter == 0)
         {
@@ -471,7 +471,7 @@ error:
     // last print to show "done"
     gfx_printf(20, y_offset, GfxPrintFlag_ClearBG, "slc         = %09llu / %09llu, res %08X, error %d", offset, slc_size, slc_result, read_error);
 
-    setNotificationLED(NOTIF_LED_RED | NOTIF_LED_BLUE);
+    SMC_SetNotificationLED(NOTIF_LED_RED | NOTIF_LED_BLUE);
     return result;
 }
 

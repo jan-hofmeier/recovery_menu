@@ -83,7 +83,7 @@ int FSA_Format(int fd, const char* device, const char* format, uint32_t flags, c
     strncpy((char*)&inbuf[0x04 / 4], device, 0x27F);
     strncpy((char*)&inbuf[0x284 / 4], format, 0x8);
     inbuf[0x28c / 4] = flags;
-    inbuf[0x290 / 4] = arg;
+    inbuf[0x290 / 4] = (uint32_t) arg;
     inbuf[0x294 / 4] = arg_len;
 
     int ret = IOS_Ioctl(fd, 0x69, inbuf, 0x520, outbuf, 0x293);

@@ -1039,7 +1039,6 @@ static void option_checkMLC(void)
     gfx_clear(COLOR_BACKGROUND);
 
     drawTopBar("Checking MLC...");
-    SMC_SetNotificationLED(NOTIF_LED_ORANGE_BLINKING);
 
     int fileHandle;
     int res = FSA_OpenFile(fsaHandle, "/vol/storage_recovsd/mlc_checker.txt", "w", &fileHandle);
@@ -1048,6 +1047,7 @@ static void option_checkMLC(void)
         return;
     }
 
+    SMC_SetNotificationLED(NOTIF_LED_ORANGE | NOTIF_LED_ORANGE_BLINKING);
     int result = checkDirRecursive(fsaHandle, "/vol/storage_mlc01", fileHandle);
     if (result<0) {
         print_error(16 + 8 + 2 + 15, "ERROR!");
@@ -1061,6 +1061,8 @@ static void option_checkMLC(void)
 close:
     FSA_CloseFile(fsaHandle, fileHandle);
     SMC_SetNotificationLED(NOTIF_LED_PURPLE);
+
+    waitButtonInput();
 }
 
 int menuThread(void* arg)

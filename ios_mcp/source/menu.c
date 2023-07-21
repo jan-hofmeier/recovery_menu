@@ -977,9 +977,10 @@ static void option_formatMlc(void){
 }
 
 
-static void cloneMlcCheckResult(int y_offset){
-
+static void cloneMlcCheckResult(void){
+    gfx_clear(COLOR_BACKGROUND);
     drawTopBar("Cloning MLC...");
+    int y_offset = 30;
     int res = mlc_clone(fsaHandle, y_offset+= 40);
     if(!res){
         gfx_print(20, y_offset += 20, GfxPrintFlag_ClearBG, "finished!");
@@ -998,7 +999,7 @@ static void option_cloneMlc(void){
     gfx_print(20, 50, GfxPrintFlag_ClearBG, "Now Insert target SD Card. ALL DATA ON THE SD WILL BE LOST!!!");
     waitButtonInput();
     unmount_mlc(fsaHandle, 70);
-    cloneMlcCheckResult(90);
+    cloneMlcCheckResult();
 }
 
 static void option_dumpSlcCloneMlc(void){
@@ -1015,7 +1016,7 @@ static void option_dumpSlcCloneMlc(void){
     gfx_print(20, 150, GfxPrintFlag_ClearBG, "Then insert the target SD Card for the MLC Clone");
     gfx_print(20, 170, GfxPrintFlag_ClearBG, "ALL DATA ON THE SDCARD WILL BE LOST!!!");
     waitButtonInput();
-    cloneMlcCheckResult(190);
+    cloneMlcCheckResult();
 }
 
 static void option_Shutdown(void)

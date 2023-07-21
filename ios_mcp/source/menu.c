@@ -1084,31 +1084,31 @@ static void option_flashBoot1(void){
     int fileHandle = 0;
     int res = FSA_OpenFile(fsaHandle, "/vol/storage_recovsd/boot1.img", "rb", &fileHandle);
     if(res<0){
-        gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Error opening boot1.img -%X", res);
+        gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Error opening boot1.img -%X", -res);
         goto end;
     }
 
     int read_bytes = FSA_ReadFile(fsaHandle, buffer, 1, buff_size, fileHandle, 0);
     FSA_CloseFile(fsaHandle, fileHandle);
     if(read_bytes<0){
-        gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Error reading boot1.img -%X", read_bytes);
+        gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Error reading boot1.img -%X", -read_bytes);
         goto end;
     }
-    gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Writing %d bytes to slcmpt! CONFIRM?", res);
+    gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Writing %d bytes to slccmpt! CONFIRM?", res);
     waitButtonInput();
     gfx_print(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Writing...");
-    res = FSA_RawOpen(fsaHandle, "/dev/slcmpt01", &fileHandle);
+    res = FSA_RawOpen(fsaHandle, "/dev/slccmpt01", &fileHandle);
     if(res<0){
-        gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Error opening slcmpt -%X", res);
+        gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Error opening slccmpt -%X", -res);
         goto end;
     }
     res = FSA_RawWrite(fsaHandle, buffer, 1, read_bytes, 0, fileHandle);
     if(res<0){
-        gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Error writing slcmpt -%X", res);
+        gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Error writing slcmpt -%X", -res);
     }
     res = FSA_RawClose(fileHandle, fileHandle);
     if(res<0){
-        gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Error closing slcmpt -%X", res);
+        gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Error closing slcmpt -%X", -res);
     }
 
 end:

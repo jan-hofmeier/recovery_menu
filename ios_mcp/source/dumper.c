@@ -32,8 +32,10 @@ int mlc_clone(int fsaHandle, int y_offset){
         gfx_printf(16, y_offset, 0, "SD card to small %llu blocks but %llu block required", sdBlkDrv->params.numBlocks, mlc_num_blocks);
         return -1;
     }
-
-    if(mlc_num_blocks * 2 < sdBlkDrv->params.numBlocks){
+    gfx_printf(16, y_offset, 0, "MLC LBAs: %llX", mlc_num_blocks);
+    y_offset+=20;
+    if(((mlc_num_blocks < (0x3a30000-0x10000)) && (sdBlkDrv->params.numBlocks>=0x3a30000)) || //MLC < 32GB but SD >=32GB
+        ((mlc_num_blocks < (0x7478000-0x10000)) && (sdBlkDrv->params.numBlocks>=0x7478000))){ //MLC < 64GB but SD >=64GB
         gfx_set_font_color(COLOR_ERROR);
         gfx_print(16, y_offset, 0, "SD card to big");
         return -1;

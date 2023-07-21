@@ -54,6 +54,7 @@ static void option_checkMLC(void);
 static void option_formatMlc(void);
 static void option_cloneMlc(void);
 static void option_dumpSlcCloneMlc(void);
+static void option_flashBoot1(void);
 
 extern int ppcHeartBeatThreadId;
 extern uint64_t currentColdbootOS;
@@ -67,6 +68,7 @@ static const Menu mainMenuOptions[] = {
     {"Clone MLC",                   {.callback = option_cloneMlc}},
     {"Check MLC",                   {.callback = option_checkMLC}},
     {"Set Initinal Launch",         {.callback = option_SetInitialLaunch}},
+    {"Flash boot1.img to slcmpt",   {.callback = option_flashBoot1}},
     //{"Format MLC (Brick Mii)",      {.callback = option_formatMlc}},
     {"Set Coldboot Title",          {.callback = option_SetColdbootTitle}},
     {"Dump Syslogs",                {.callback = option_DumpSyslogs}},
@@ -1038,7 +1040,6 @@ static void option_Shutdown(void)
 static void option_checkMLC(void)
 {
     gfx_clear(COLOR_BACKGROUND);
-
     drawTopBar("Checking MLC...");
 
     int fileHandle;
@@ -1063,6 +1064,55 @@ close:
     FSA_CloseFile(fsaHandle, fileHandle);
     SMC_SetNotificationLED(NOTIF_LED_PURPLE);
 
+    waitButtonInput();
+}
+
+static void option_flashBoot1(void){
+    gfx_clear(COLOR_BACKGROUND);
+    drawTopBar("Checking MLC...");
+    size_t buff_size = 64 * 1024;
+
+    uint32_t index = 30;
+    char* buffer = (char*) IOS_HeapAllocAligned(CROSS_PROCESS_HEAP_ID, buff_size, 0x40);
+    if (!buffer) {
+        gfx_set_font_color(COLOR_ERROR);
+        gfx_print(16, index, 0, "Out of memory!");
+        waitButtonInput();
+        return;
+    }
+    gfx_print(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Reading boot1.img...");
+    int fileHandle = 0;
+    int res = FSA_OpenFile(fsaHandle, "/vol/storage_recovsd/boot1.img", "rb", &fileHandle);
+    if(res<0){
+        gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Error opening boot1.img -%X", res);
+        goto end;
+    }
+
+    int read_bytes = FSA_ReadFile(fsaHandle, buffer, 1, buff_size, fileHandle, 0);
+    FSA_CloseFile(fsaHandle, fileHandle);
+    if(read_bytes<0){
+        gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Error reading boot1.img -%X", read_bytes);
+        goto end;
+    }
+    gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Writing %d bytes to slcmpt! CONFIRM?", res);
+    waitButtonInput();
+    gfx_print(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Writing...");
+    res = FSA_RawOpen(fsaHandle, "/dev/slcmpt01", &fileHandle);
+    if(res<0){
+        gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Error opening slcmpt -%X", res);
+        goto end;
+    }
+    res = FSA_RawWrite(fsaHandle, buffer, 1, read_bytes, 0, fileHandle);
+    if(res<0){
+        gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Error writing slcmpt -%X", res);
+    }
+    res = FSA_RawClose(fileHandle, fileHandle);
+    if(res<0){
+        gfx_printf(16, index+= CHAR_SIZE_DRC_Y + 4, 0, "Error closing slcmpt -%X", res);
+    }
+
+end:
+    IOS_HeapFree(CROSS_PROCESS_HEAP_ID, buffer);
     waitButtonInput();
 }
 

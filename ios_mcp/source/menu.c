@@ -51,6 +51,7 @@ static void option_EditParental(void);
 static void option_SetInitialLaunch(void);
 static void option_Shutdown(void);
 static void option_checkMLC(void);
+static void option_checkSLC(void);
 static void option_formatMlc(void);
 static void option_cloneMlc(void);
 static void option_dumpSlcCloneMlc(void);
@@ -67,6 +68,7 @@ static const Menu mainMenuOptions[] = {
     {"Dump SLC + Clone MLC",        {.callback = option_dumpSlcCloneMlc}},
     {"Clone MLC",                   {.callback = option_cloneMlc}},
     {"Check MLC",                   {.callback = option_checkMLC}},
+    {"Check SLC",                   {.callback = option_checkSLC}},
     {"Set Initinal Launch",         {.callback = option_SetInitialLaunch}},
     {"Flash boot1.img to slcmpt",   {.callback = option_flashBoot1}},
     //{"Format MLC (Brick Mii)",      {.callback = option_formatMlc}},
@@ -1051,6 +1053,36 @@ static void option_checkMLC(void)
 
     SMC_SetNotificationLED(NOTIF_LED_ORANGE | NOTIF_LED_ORANGE_BLINKING);
     int result = checkDirRecursive(fsaHandle, "/vol/storage_mlc01", fileHandle);
+    if (result<0) {
+        print_error(16 + 8 + 2 + 15, "ERROR!");
+        goto close;
+    }
+
+    gfx_draw_rect_filled(0, 16 + 8 + 2 + 15, 1280, 16 + 8 + 2 + 8, COLOR_BACKGROUND);
+    gfx_set_font_color(COLOR_SUCCESS);
+    gfx_printf(16, 16 + 8 + 2 + 15, 0, "Done! %u errors", result);
+
+close:
+    FSA_CloseFile(fsaHandle, fileHandle);
+    SMC_SetNotificationLED(NOTIF_LED_PURPLE);
+
+    waitButtonInput();
+}
+
+static void option_checkSLC(void)
+{
+    gfx_clear(COLOR_BACKGROUND);
+    drawTopBar("Checking SLC...");
+
+    int fileHandle;
+    int res = FSA_OpenFile(fsaHandle, "/vol/storage_recovsd/slc_checker.txt", "w", &fileHandle);
+    if (res < 0) {
+        printf_error(16 + 8 + 2 + 8, "Failed to create slc_checker.txt: %x", res);
+        return;
+    }
+
+    SMC_SetNotificationLED(NOTIF_LED_ORANGE | NOTIF_LED_ORANGE_BLINKING);
+    int result = checkDirRecursive(fsaHandle, "/vol/system", fileHandle);
     if (result<0) {
         print_error(16 + 8 + 2 + 15, "ERROR!");
         goto close;
